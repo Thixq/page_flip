@@ -73,7 +73,13 @@ class PageFlipBuilderState extends State<PageFlipBuilder> {
               color: widget.backgroundColor ?? Colors.black12,
               child: RepaintBoundary(
                 key: _boundaryKey,
-                child: widget.child,
+                child: Column(
+                  children: [
+                    Flexible(
+                      child: widget.child,
+                    ),
+                  ],
+                ),
               ),
             );
           } else {
