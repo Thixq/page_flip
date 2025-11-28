@@ -75,7 +75,7 @@ class PageFlipBuilderState extends State<PageFlipBuilder> {
                 key: _boundaryKey,
                 child: Column(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: widget.child,
                     ),
                   ],

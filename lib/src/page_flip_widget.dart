@@ -17,6 +17,7 @@ class PageFlipWidget extends StatefulWidget {
     this.onPageFlipped,
     this.onFlipStart,
     this.controller,
+    this.aspectRatio = 1 / 1.5,
   })  : assert(initialIndex < children.length,
             'initialIndex cannot be greater than children length'),
         super(key: key);
@@ -31,6 +32,7 @@ class PageFlipWidget extends StatefulWidget {
   final bool isRightSwipe;
   final void Function(int pageNumber)? onPageFlipped;
   final void Function()? onFlipStart;
+  final double aspectRatio;
 
   @override
   PageFlipWidgetState createState() => PageFlipWidgetState();
@@ -252,14 +254,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         onHorizontalDragCancel: () => _isForward = null,
         onHorizontalDragUpdate: (details) => _turnPage(details, dimens),
         onHorizontalDragEnd: (details) => _onDragFinish(),
-        child: Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            if (widget.lastPage != null) ...[
-              widget.lastPage!,
+        child: AspectRatio(
+          aspectRatio: widget.aspectRatio,
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              if (widget.lastPage != null) ...[
+                widget.lastPage!,
+              ],
+              if (pages.isNotEmpty) ...pages else const SizedBox.shrink(),
             ],
-            if (pages.isNotEmpty) ...pages else const SizedBox.shrink(),
-          ],
+          ),
         ),
       ),
     );
