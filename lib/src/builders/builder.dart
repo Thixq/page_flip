@@ -37,12 +37,14 @@ class PageFlipBuilderState extends State<PageFlipBuilder> {
     if (_boundaryKey.currentContext == null) return;
     await Future.delayed(const Duration(milliseconds: 100));
     if (mounted) {
-      final boundary = _boundaryKey.currentContext!.findRenderObject()!
-          as RenderRepaintBoundary;
-      final image = await boundary.toImage();
-      setState(() {
-        imageData[index] = image.clone();
-      });
+      // ignore: use_build_context_synchronously
+      final renderObject = _boundaryKey.currentContext?.findRenderObject();
+      if (renderObject is RenderRepaintBoundary) {
+        final image = await renderObject.toImage();
+        setState(() {
+          imageData[index] = image.clone();
+        });
+      }
     }
   }
 
@@ -70,20 +72,17 @@ class PageFlipBuilderState extends State<PageFlipBuilder> {
           if (widget.pageIndex == currentPageIndex.value ||
               (widget.pageIndex == (currentPageIndex.value + 1))) {
             return ColoredBox(
-              color: widget.backgroundColor ?? Colors.black12,
+              color: widget.backgroundColor ?? Colors.transparent,
               child: RepaintBoundary(
                 key: _boundaryKey,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: widget.child,
-                    ),
-                  ],
+                // StackFit.expand olduğu için Expanded burada güvenlidir.
+                child: SizedBox.expand(
+                  child: widget.child,
                 ),
               ),
             );
           } else {
-            return Container();
+            return const SizedBox.shrink();
           }
         }
       },

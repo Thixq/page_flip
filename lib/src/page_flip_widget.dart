@@ -17,7 +17,8 @@ class PageFlipWidget extends StatefulWidget {
     this.onPageFlipped,
     this.onFlipStart,
     this.controller,
-    this.aspectRatio = 1 / 1.5,
+    // Yeni eklenen parametre: Varsayılan bir kitap oranı (örneğin A4 benzeri)
+    this.aspectRatio = 0.65,
   })  : assert(initialIndex < children.length,
             'initialIndex cannot be greater than children length'),
         super(key: key);
@@ -32,7 +33,7 @@ class PageFlipWidget extends StatefulWidget {
   final bool isRightSwipe;
   final void Function(int pageNumber)? onPageFlipped;
   final void Function()? onFlipStart;
-  final double aspectRatio;
+  final double aspectRatio; // Sınıf değişkeni
 
   @override
   PageFlipWidgetState createState() => PageFlipWidgetState();
@@ -48,6 +49,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Eğer widget güncellenirse sayfaları yeniden kur
+    if (oldWidget.children != widget.children ||
+        oldWidget.aspectRatio != widget.aspectRatio) {
+      _setUp();
+    }
   }
 
   @override
@@ -61,12 +67,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   @override
   void initState() {
     super.initState();
-    // Initialize global variables (defined in page_flip.dart)
     imageData = {};
     currentPage = ValueNotifier(-1);
     currentWidget = ValueNotifier(Container());
     currentPageIndex = ValueNotifier(0);
-    // Associate the controller, if provided, with this state
     widget.controller?._state = this;
     _setUp();
   }
@@ -113,7 +117,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   bool get _isFirstPage => pageNumber == 0;
 
   void _turnPage(DragUpdateDetails details, BoxConstraints dimens) {
-    // During dragging, update currentPage to trigger the builder's animation effect
     currentPage.value = pageNumber;
     currentWidget.value = Container();
     final ratio = details.delta.dx / dimens.maxWidth;
@@ -172,12 +175,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     currentPage.value = -1;
   }
 
-  /// Triggers the animation to advance to the next page – via gesture or button.
   Future nextPage() async {
-    // Prevent going beyond the last page
     if (_isLastPage) return;
     widget.onFlipStart?.call();
-    // Update currentPage to trigger the builder effect
     currentPage.value = pageNumber;
     await _controllers[pageNumber].reverse();
     if (mounted) {
@@ -188,23 +188,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         currentPageIndex.value = pageNumber;
         currentWidget.value = pages[pageNumber];
       }
-      // In case it is the last page, ensure the notifiers are updated
       if (_isLastPage) {
         currentPageIndex.value = pageNumber;
         currentWidget.value = pages[pageNumber];
       }
       widget.onPageFlipped?.call(pageNumber);
     }
-    // Reset currentPage after the animation
     currentPage.value = -1;
   }
 
-  /// Triggers the animation to go back to the previous page – via gesture or button.
   Future previousPage() async {
-    // Prevent going before the first page
     if (_isFirstPage) return;
     widget.onFlipStart?.call();
-    // Update currentPage to trigger the reverse animation effect
     currentPage.value = pageNumber - 1;
     await _controllers[pageNumber - 1].forward();
     if (mounted) {
@@ -244,29 +239,33 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, dimens) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (details) {},
-        onTapUp: (details) {},
-        onPanDown: (details) {},
-        onPanEnd: (details) {},
-        onTapCancel: () {},
-        onHorizontalDragCancel: () => _isForward = null,
-        onHorizontalDragUpdate: (details) => _turnPage(details, dimens),
-        onHorizontalDragEnd: (details) => _onDragFinish(),
-        child: AspectRatio(
-          aspectRatio: widget.aspectRatio,
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              if (widget.lastPage != null) ...[
-                widget.lastPage!,
+      builder: (context, dimens) {
+        // LayoutBuilder içinde AspectRatio kullanarak
+        // Stack'in genişliğine göre yüksekliğini sabitliyoruz.
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) {},
+          onTapUp: (details) {},
+          onPanDown: (details) {},
+          onPanEnd: (details) {},
+          onTapCancel: () {},
+          onHorizontalDragCancel: () => _isForward = null,
+          onHorizontalDragUpdate: (details) => _turnPage(details, dimens),
+          onHorizontalDragEnd: (details) => _onDragFinish(),
+          child: AspectRatio(
+            aspectRatio: widget.aspectRatio,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                if (widget.lastPage != null) ...[
+                  widget.lastPage!,
+                ],
+                if (pages.isNotEmpty) ...pages else const SizedBox.shrink(),
               ],
-              if (pages.isNotEmpty) ...pages else const SizedBox.shrink(),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
